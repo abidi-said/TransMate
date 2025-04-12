@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -7,8 +8,10 @@ import { TabNavigation } from "@/components/layout/tab-navigation";
 import { TranslationKeyList } from "@/components/editor/translation-key-list";
 import { TranslationForm } from "@/components/editor/translation-form";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EditorPage() {
+  const { toast } = useToast();
   const [selectedKeyId, setSelectedKeyId] = useState<number | null>(null);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['en', 'fr', 'de']);
   const [searchKey, setSearchKey] = useState('');
@@ -17,6 +20,15 @@ export default function EditorPage() {
     needsReview: false,
     aiTranslated: false
   });
+  
+  // Initialize WebSocket connection
+  const { 
+    connected,
+    messages,
+    joinProject,
+    leaveProject,
+    activeEditors
+  } = useWebSocket();
 
   useEffect(() => {
     document.title = "Transmate - Translation Editor";
@@ -29,6 +41,25 @@ export default function EditorPage() {
   // Assuming we're using the first project for now
   // In a real app, we'd have project selection functionality
   const projectId = projects && projects.length > 0 ? projects[0].id : null;
+  
+  // Join the project via WebSocket when a project is selected
+  useEffect(() => {
+    if (projectId && connected) {
+      joinProject(projectId);
+      
+      if (connected) {
+        toast({
+          title: "Collaborative editing active",
+          description: "You can now see other editors working on the same translations in real-time.",
+        });
+      }
+      
+      // Leave the project when unmounting
+      return () => {
+        leaveProject();
+      };
+    }
+  }, [projectId, connected, joinProject, leaveProject, toast]);
 
   const { data: translationKeys, isLoading: keysLoading } = useQuery({
     queryKey: ["/api/projects", projectId, "keys"],

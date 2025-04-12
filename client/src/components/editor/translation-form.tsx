@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 
+import { ActiveEditors } from "@/components/translation/active-editors";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useAuth } from "@/hooks/use-auth";
+
 interface TranslationFormProps {
   keyId: number;
   languages: any[];
@@ -37,9 +41,13 @@ export function TranslationForm({
   projectId
 }: TranslationFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // Setup WebSocket functionality
+  const { editTranslation, approveTranslation, activeEditors } = useWebSocket();
 
   // Fetch the translation key
   const { data: translationKey, isLoading: keyLoading } = useQuery({
@@ -136,12 +144,18 @@ export function TranslationForm({
     }
   });
 
-  // Handle input change
+  // Handle input change and broadcast via WebSocket
   const handleInputChange = (languageCode: string, value: string) => {
     setFormValues(prev => ({
       ...prev,
       [languageCode]: value
     }));
+    
+    // Notify other users about this edit via WebSocket
+    const language = languages.find(l => l.code === languageCode);
+    if (language) {
+      editTranslation(keyId, language.id, value);
+    }
   };
 
   // Handle save for a specific language
@@ -342,16 +356,25 @@ export function TranslationForm({
                       onChange={(e) => handleInputChange(language.code, e.target.value)}
                       disabled={isAiTranslating}
                     />
-                    {!isDefault && (
-                      <Button 
-                        size="sm" 
-                        className="absolute bottom-2 right-2" 
-                        onClick={() => handleSave(language.code)}
-                        disabled={isSaving || isAiTranslating}
-                      >
-                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      </Button>
-                    )}
+                    <div className="absolute bottom-2 right-2 flex items-center space-x-2">
+                      {/* Show active editors for this translation */}
+                      <ActiveEditors 
+                        keyId={keyId}
+                        languageId={language.id}
+                        activeEditors={activeEditors}
+                        excludeUserId={user?.id}
+                      />
+                      
+                      {!isDefault && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleSave(language.code)}
+                          disabled={isSaving || isAiTranslating}
+                        >
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
