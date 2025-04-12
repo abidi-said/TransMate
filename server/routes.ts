@@ -9,6 +9,8 @@ import fs from "fs";
 import path from "path";
 import { glob } from "glob";
 import { TransmateConfig } from "@shared/schema";
+import { WebSocketServer, WebSocket } from "ws";
+import { setupWebSocketServer } from "./websocket";
 
 // Request middleware to ensure user is authenticated
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -943,6 +945,9 @@ Translation:`;
   
   // Create the HTTP server
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server for real-time collaborative editing
+  setupWebSocketServer(httpServer);
   
   return httpServer;
 }
