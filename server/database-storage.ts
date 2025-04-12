@@ -171,7 +171,7 @@ export class DatabaseStorage implements IStorage {
         eq(projectMembers.projectId, projectId),
         eq(projectMembers.userId, userId)
       ));
-    return result.count > 0;
+    return result !== undefined;
   }
 
   // Language operations
@@ -270,7 +270,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTranslationKey(id: number): Promise<boolean> {
     const result = await db.delete(translationKeys).where(eq(translationKeys.id, id));
-    return result.count > 0;
+    return result !== undefined;
   }
 
   // Translation operations
@@ -346,19 +346,38 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getProjectSettings(settings.projectId);
     
     if (existing) {
+      // For updates, remove updatedAt from the input and set it separately
+      const { updatedAt, ...settingsToUpdate } = settings as any;
+      
       const result = await db.update(projectSettings)
         .set({
-          ...settings,
+          ...settingsToUpdate,
           updatedAt: new Date()
         })
         .where(eq(projectSettings.id, existing.id))
         .returning();
+        
       return result[0];
     } else {
-      const result = await db.insert(projectSettings).values({
-        ...settings,
-        updatedAt: new Date()
-      }).returning();
+      // For inserts, construct the correct format without updatedAt
+      const insertData: any = {
+        projectId: settings.projectId,
+        translationFilePath: settings.translationFilePath,
+        sourcePatterns: settings.sourcePatterns || null,
+        ignorePatterns: settings.ignorePatterns || null,
+        gitRepository: settings.gitRepository || null,
+        gitBranch: settings.gitBranch || null,
+        aiTranslationEnabled: settings.aiTranslationEnabled !== undefined ? settings.aiTranslationEnabled : true,
+        aiProvider: settings.aiProvider || "openai",
+        aiApiKey: settings.aiApiKey || null,
+        aiModel: settings.aiModel || "gpt-4o",
+        aiInstructions: settings.aiInstructions || null
+      };
+      
+      const result = await db.insert(projectSettings)
+        .values(insertData)
+        .returning();
+        
       return result[0];
     }
   }
@@ -378,7 +397,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteApiKey(id: number): Promise<boolean> {
     const result = await db.delete(apiKeys).where(eq(apiKeys.id, id));
-    return result.count > 0;
+    return result !== undefined;
   }
 
   // Activity log operations
