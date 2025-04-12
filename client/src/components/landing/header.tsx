@@ -16,38 +16,30 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Link href="/">
-              <a className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 cursor-pointer">
                 <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
                   <span className="text-white font-bold text-xl">T</span>
                 </div>
                 <span className="text-xl font-bold">Transmate</span>
-              </a>
+              </div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="#features">
-              <a className="text-gray-700 hover:text-primary">Features</a>
-            </Link>
-            <Link href="#pricing">
-              <a className="text-gray-700 hover:text-primary">Pricing</a>
-            </Link>
-            <Link href="#testimonials">
-              <a className="text-gray-700 hover:text-primary">Testimonials</a>
-            </Link>
-            <Link href="#contact">
-              <a className="text-gray-700 hover:text-primary">Contact</a>
-            </Link>
+            <a href="#features" className="text-gray-700 hover:text-primary">Features</a>
+            <a href="#pricing" className="text-gray-700 hover:text-primary">Pricing</a>
+            <a href="#testimonials" className="text-gray-700 hover:text-primary">Testimonials</a>
+            <a href="#contact" className="text-gray-700 hover:text-primary">Contact</a>
           </nav>
 
           {/* Login/Register buttons (desktop) */}
           <div className="hidden md:flex items-center space-x-3">
             <Link href="/auth?action=login">
-              <Button variant="outline">Login</Button>
+              <Button variant="outline" className="cursor-pointer">Login</Button>
             </Link>
             <Link href="/auth?action=register">
-              <Button>Get Started</Button>
+              <Button className="cursor-pointer">Get Started</Button>
             </Link>
           </div>
 
@@ -65,34 +57,26 @@ export function Header() {
         {menuOpen && (
           <div className="md:hidden py-4">
             <nav className="flex flex-col space-y-4">
-              <Link href="#features">
-                <a className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
-                  Features
-                </a>
-              </Link>
-              <Link href="#pricing">
-                <a className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
-                  Pricing
-                </a>
-              </Link>
-              <Link href="#testimonials">
-                <a className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
-                  Testimonials
-                </a>
-              </Link>
-              <Link href="#contact">
-                <a className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
-                  Contact
-                </a>
-              </Link>
+              <a href="#features" className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
+                Features
+              </a>
+              <a href="#pricing" className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
+                Pricing
+              </a>
+              <a href="#testimonials" className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
+                Testimonials
+              </a>
+              <a href="#contact" className="text-gray-700 hover:text-primary" onClick={() => setMenuOpen(false)}>
+                Contact
+              </a>
               <div className="flex flex-col space-y-3 pt-2 border-t border-gray-200">
                 <Link href="/auth?action=login">
-                  <Button variant="outline" className="w-full" onClick={() => setMenuOpen(false)}>
+                  <Button variant="outline" className="w-full cursor-pointer" onClick={() => setMenuOpen(false)}>
                     Login
                   </Button>
                 </Link>
                 <Link href="/auth?action=register">
-                  <Button className="w-full" onClick={() => setMenuOpen(false)}>
+                  <Button className="w-full cursor-pointer" onClick={() => setMenuOpen(false)}>
                     Get Started
                   </Button>
                 </Link>
