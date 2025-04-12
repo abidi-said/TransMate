@@ -1,9 +1,6 @@
-import { users, projects, projectMembers, languages, translationFiles, translationKeys, translations, translationMemory, projectSettings, apiKeys, activityLogs, payments } from "@shared/schema";
 import type { User, InsertUser, Project, InsertProject, ProjectMember, InsertProjectMember, Language, InsertLanguage, TranslationFile, InsertTranslationFile, TranslationKey, InsertTranslationKey, Translation, InsertTranslation, TranslationMemoryEntry, InsertTranslationMemoryEntry, ProjectSettings, InsertProjectSettings, ApiKey, InsertApiKey, ActivityLog, InsertActivityLog, Payment, InsertPayment } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-
-const MemoryStore = createMemoryStore(session);
+import { DatabaseStorage } from "./database-storage";
 
 export interface IStorage {
   // User operations
@@ -512,4 +509,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use DatabaseStorage for production
+export const storage = new DatabaseStorage();
