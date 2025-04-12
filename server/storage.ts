@@ -10,6 +10,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
+  getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
   updateStripeCustomerId(id: number, customerId: string): Promise<User | undefined>;
@@ -73,10 +75,11 @@ export interface IStorage {
   // Payment operations
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByUser(userId: number): Promise<Payment[]>;
+  getPaymentsByProviderPaymentId(provider: string, providerPaymentId: string): Promise<Payment[]>;
   updatePaymentStatus(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store type
 }
 
 export class MemStorage implements IStorage {
@@ -94,7 +97,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment>;
   
   currentId: { [key: string]: number } = {};
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store
   
   constructor() {
     this.users = new Map();
@@ -148,10 +151,30 @@ export class MemStorage implements IStorage {
     );
   }
   
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.stripeCustomerId === customerId
+    );
+  }
+  
+  async getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.stripeSubscriptionId === subscriptionId
+    );
+  }
+  
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId.users++;
     const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: now,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStatus: "inactive",
+      lastLoginAt: null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -464,6 +487,14 @@ export class MemStorage implements IStorage {
     return Array.from(this.payments.values())
       .filter(payment => payment.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+  
+  async getPaymentsByProviderPaymentId(provider: string, providerPaymentId: string): Promise<Payment[]> {
+    return Array.from(this.payments.values())
+      .filter(payment => 
+        payment.provider === provider && 
+        payment.providerPaymentId === providerPaymentId
+      );
   }
   
   async updatePaymentStatus(id: number, status: string, providerPaymentId?: string): Promise<Payment | undefined> {
