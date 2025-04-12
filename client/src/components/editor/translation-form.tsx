@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Save, EyeOff, ChevronDown, BrainCircuit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { ActiveEditors } from "@/components/translation/active-editors";
 import { apiRequest } from "@/lib/queryClient";
 import {
   DropdownMenu,
@@ -20,10 +23,6 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
-
-import { ActiveEditors } from "@/components/translation/active-editors";
-import { useWebSocket } from "@/hooks/use-websocket";
-import { useAuth } from "@/hooks/use-auth";
 
 interface TranslationFormProps {
   keyId: number;

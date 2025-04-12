@@ -1,7 +1,5 @@
-import React from 'react';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { UsersRound } from "lucide-react";
 
 interface ActiveEditorsProps {
   keyId: number;
@@ -13,13 +11,13 @@ interface ActiveEditorsProps {
 export function ActiveEditors({ 
   keyId, 
   languageId, 
-  activeEditors, 
-  excludeUserId 
+  activeEditors,
+  excludeUserId
 }: ActiveEditorsProps) {
   const translationKey = `${keyId}-${languageId}`;
   const editors = activeEditors[translationKey] || [];
   
-  // Filter out the current user
+  // Filter out the current user if excludeUserId is provided
   const otherEditors = excludeUserId 
     ? editors.filter(editor => editor.userId !== excludeUserId)
     : editors;
@@ -29,27 +27,38 @@ export function ActiveEditors({
   }
   
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <UsersRound className="h-4 w-4" />
-            <span className="text-xs font-medium">{otherEditors.length}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="p-2">
-          <div className="flex flex-col space-y-1">
-            <p className="text-xs font-semibold">Currently editing:</p>
-            <div className="flex flex-wrap gap-1">
-              {otherEditors.map(editor => (
-                <Badge key={editor.userId} variant="outline" className="text-xs">
-                  {editor.userName}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="flex -space-x-2">
+      <TooltipProvider>
+        {otherEditors.slice(0, 3).map((editor) => (
+          <Tooltip key={editor.userId}>
+            <TooltipTrigger asChild>
+              <Avatar className="h-6 w-6 border-2 border-white">
+                <AvatarFallback className="bg-primary text-white text-xs">
+                  {editor.userName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{editor.userName} is editing</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+        
+        {otherEditors.length > 3 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Avatar className="h-6 w-6 border-2 border-white">
+                <AvatarFallback className="bg-slate-500 text-white text-xs">
+                  +{otherEditors.length - 3}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{otherEditors.length - 3} more editors</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </TooltipProvider>
+    </div>
   );
 }

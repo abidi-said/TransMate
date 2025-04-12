@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from './use-auth';
-import { useToast } from './use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
-// Define the message types for WebSocket communication (same as server)
 type MessageType = 
   | 'JOIN_PROJECT'
   | 'LEAVE_PROJECT'
@@ -11,7 +10,6 @@ type MessageType =
   | 'SYNC_STATUS'
   | 'ERROR';
 
-// Define the structure of WebSocket messages (same as server)
 interface WebSocketMessage {
   type: MessageType;
   projectId?: number;
@@ -25,7 +23,6 @@ interface WebSocketMessage {
   timestamp?: number;
 }
 
-// Define the types for the hook result
 interface UseWebSocketResult {
   connected: boolean;
   connecting: boolean;
@@ -38,206 +35,242 @@ interface UseWebSocketResult {
   activeEditors: Record<string, { userId: number; userName: string }[]>;
 }
 
-// Define the hook for using WebSocket connection
 export function useWebSocket(): UseWebSocketResult {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [socket, setSocket] = useState<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   const [activeEditors, setActiveEditors] = useState<Record<string, { userId: number; userName: string }[]>>({});
   
-  // Use a ref to keep the socket instance
-  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
   
-  // Function to get the WebSocket URL
-  const getWebSocketUrl = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const baseUrl = `${protocol}//${window.location.host}/ws`;
-    
-    // Add authentication parameters if user is logged in
-    if (user) {
-      return `${baseUrl}?userId=${user.id}&token=placeholder`;
-    }
-    
-    return baseUrl;
-  }, [user]);
-  
-  // Function to set up the WebSocket connection
-  const setupWebSocket = useCallback(() => {
+  // Setup WebSocket connection
+  useEffect(() => {
     if (!user) return;
     
-    try {
-      setConnecting(true);
-      
-      // Close existing connection if any
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.close();
-      }
-      
-      // Create new connection
-      const socket = new WebSocket(getWebSocketUrl());
-      socketRef.current = socket;
-      
-      // Set up event handlers
-      socket.onopen = () => {
-        setConnected(true);
-        setConnecting(false);
-        console.log('WebSocket connection established');
-      };
-      
-      socket.onclose = () => {
-        setConnected(false);
-        setConnecting(false);
-        console.log('WebSocket connection closed');
-      };
-      
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+    function connect() {
+      try {
+        setConnecting(true);
+        
+        // Create WebSocket connection
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+          setConnected(true);
+          setConnecting(false);
+          reconnectAttempts.current = 0;
+          
+          // Send auth message
+          if (user) {
+            const authMessage: WebSocketMessage = {
+              type: 'JOIN_PROJECT',
+              userId: user.id,
+              userName: user.username
+            };
+            ws.send(JSON.stringify(authMessage));
+          }
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            setMessages(prev => [...prev, message]);
+            
+            // Handle different message types
+            switch (message.type) {
+              case 'EDIT_TRANSLATION':
+                handleEditTranslation(message);
+                break;
+              case 'ERROR':
+                toast({
+                  title: 'WebSocket Error',
+                  description: message.error || 'An error occurred in the WebSocket connection.',
+                  variant: 'destructive'
+                });
+                break;
+              default:
+                break;
+            }
+          } catch (err) {
+            console.error('Error parsing WebSocket message:', err);
+          }
+        };
+        
+        ws.onclose = () => {
+          setConnected(false);
+          setConnecting(false);
+          
+          // Attempt to reconnect
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            reconnectAttempts.current += 1;
+            const delay = Math.min(1000 * (2 ** reconnectAttempts.current), 30000);
+            
+            if (reconnectTimeoutRef.current) {
+              clearTimeout(reconnectTimeoutRef.current);
+            }
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            toast({
+              title: 'Connection Lost',
+              description: 'Unable to reconnect to the collaboration server. Please refresh the page.',
+              variant: 'destructive'
+            });
+          }
+        };
+        
+        ws.onerror = () => {
+          // WebSocket API doesn't provide error details due to security restrictions
+          setConnected(false);
+        };
+        
+        setSocket(ws);
+        
+        // Cleanup on unmount
+        return () => {
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+        };
+      } catch (err) {
+        console.error('Error establishing WebSocket connection:', err);
         setConnecting(false);
         toast({
           title: 'Connection Error',
-          description: 'Could not establish real-time connection. Collaborative features may be limited.',
-          variant: 'destructive',
+          description: 'Failed to connect to the real-time collaboration server.',
+          variant: 'destructive'
         });
-      };
-      
-      socket.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          
-          // Add the message to our list
-          setMessages(prev => [...prev, message]);
-          
-          // Handle different message types
-          switch (message.type) {
-            case 'ERROR':
-              toast({
-                title: 'Error',
-                description: message.error || 'Unknown error',
-                variant: 'destructive',
-              });
-              break;
-              
-            case 'EDIT_TRANSLATION':
-              if (message.keyId && message.languageId && message.userId && message.userName) {
-                const key = `${message.keyId}-${message.languageId}`;
-                
-                setActiveEditors(prev => {
-                  const editors = [...(prev[key] || [])];
-                  
-                  // Check if the user is already in the list
-                  const existingIndex = editors.findIndex(e => e.userId === message.userId);
-                  
-                  if (existingIndex >= 0) {
-                    // Update existing entry
-                    editors[existingIndex] = { userId: message.userId!, userName: message.userName! };
-                  } else {
-                    // Add new entry
-                    editors.push({ userId: message.userId!, userName: message.userName! });
-                  }
-                  
-                  return { ...prev, [key]: editors };
-                });
-              }
-              break;
-              
-            case 'LEAVE_PROJECT':
-              if (message.userId) {
-                // Remove this user from all active editors
-                setActiveEditors(prev => {
-                  const newEditors = { ...prev };
-                  
-                  // Loop through all translation keys
-                  Object.keys(newEditors).forEach(key => {
-                    newEditors[key] = newEditors[key].filter(editor => editor.userId !== message.userId);
-                    
-                    // Remove the key if no editors left
-                    if (newEditors[key].length === 0) {
-                      delete newEditors[key];
-                    }
-                  });
-                  
-                  return newEditors;
-                });
-              }
-              break;
-          }
-        } catch (error) {
-          console.error('Error processing WebSocket message:', error);
-        }
-      };
-    } catch (error) {
-      console.error('Error setting up WebSocket:', error);
-      setConnecting(false);
-    }
-  }, [user, getWebSocketUrl, toast]);
-  
-  // Set up WebSocket when user logs in or changes
-  useEffect(() => {
-    if (user) {
-      setupWebSocket();
-    } else {
-      // Close existing connection if user logs out
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
       }
-      setConnected(false);
     }
     
-    // Clean up on unmount
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-    };
-  }, [user, setupWebSocket]);
+    connect();
+  }, [user, toast]);
   
-  // Function to send a message through the WebSocket
-  const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket not connected, unable to send message');
-    }
+  // Handle edit translation messages
+  const handleEditTranslation = useCallback((message: WebSocketMessage) => {
+    if (!message.keyId || !message.languageId || !message.userId || !message.userName) return;
+    
+    // Create unique key for this translation
+    const translationKey = `${message.keyId}-${message.languageId}`;
+    
+    setActiveEditors(prev => {
+      const editors = [...(prev[translationKey] || [])];
+      
+      // Check if this user is already in the editors list
+      const existingIndex = editors.findIndex(e => e.userId === message.userId);
+      
+      if (existingIndex >= 0) {
+        // Update existing editor
+        editors[existingIndex] = { 
+          userId: message.userId!, 
+          userName: message.userName! 
+        };
+      } else {
+        // Add new editor
+        editors.push({ 
+          userId: message.userId!, 
+          userName: message.userName! 
+        });
+      }
+      
+      return {
+        ...prev,
+        [translationKey]: editors
+      };
+    });
+    
+    // Remove editors after 5 seconds of inactivity
+    setTimeout(() => {
+      setActiveEditors(prev => {
+        const editors = [...(prev[translationKey] || [])];
+        const filteredEditors = editors.filter(e => e.userId !== message.userId);
+        
+        if (filteredEditors.length === 0) {
+          const newState = { ...prev };
+          delete newState[translationKey];
+          return newState;
+        }
+        
+        return {
+          ...prev,
+          [translationKey]: filteredEditors
+        };
+      });
+    }, 5000);
   }, []);
   
-  // Utility functions for common message types
+  // Send a message through the WebSocket
+  const sendMessage = useCallback((message: WebSocketMessage) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket is not connected, unable to send message');
+    }
+  }, [socket]);
+  
+  // Join a project for collaboration
   const joinProject = useCallback((projectId: number) => {
+    if (!user) return;
+    
     sendMessage({
       type: 'JOIN_PROJECT',
       projectId,
-      timestamp: Date.now(),
+      userId: user.id,
+      userName: user.username
     });
-  }, [sendMessage]);
+  }, [user, sendMessage]);
   
+  // Leave the current project
   const leaveProject = useCallback(() => {
+    if (!user) return;
+    
     sendMessage({
       type: 'LEAVE_PROJECT',
-      timestamp: Date.now(),
+      userId: user.id
     });
-  }, [sendMessage]);
+  }, [user, sendMessage]);
   
+  // Send edit translation update
   const editTranslation = useCallback((keyId: number, languageId: number, value: string) => {
+    if (!user) return;
+    
     sendMessage({
       type: 'EDIT_TRANSLATION',
       keyId,
       languageId,
       value,
-      timestamp: Date.now(),
+      userId: user.id,
+      userName: user.username,
+      timestamp: Date.now()
     });
-  }, [sendMessage]);
+  }, [user, sendMessage]);
   
+  // Send translation approval status
   const approveTranslation = useCallback((keyId: number, languageId: number, isApproved: boolean) => {
+    if (!user) return;
+    
     sendMessage({
       type: 'APPROVE_TRANSLATION',
       keyId,
       languageId,
       isApproved,
-      timestamp: Date.now(),
+      userId: user.id,
+      userName: user.username
     });
-  }, [sendMessage]);
+  }, [user, sendMessage]);
   
   return {
     connected,
@@ -248,6 +281,6 @@ export function useWebSocket(): UseWebSocketResult {
     leaveProject,
     editTranslation,
     approveTranslation,
-    activeEditors,
+    activeEditors
   };
 }
