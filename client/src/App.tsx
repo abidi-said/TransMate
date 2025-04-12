@@ -10,19 +10,21 @@ import EditorPage from "@/pages/editor-page";
 import FileManagementPage from "@/pages/file-management-page";
 import AiTranslationPage from "@/pages/ai-translation-page";
 import SettingsPage from "@/pages/settings-page";
+import LandingPage from "@/pages/landing-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/" component={LandingPage} />
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/dashboard" component={DashboardPage} />
-      <ProtectedRoute path="/editor" component={EditorPage} />
-      <ProtectedRoute path="/files" component={FileManagementPage} />
-      <ProtectedRoute path="/ai-translation" component={AiTranslationPage} />
-      <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/app" component={HomePage} />
+      <ProtectedRoute path="/app/dashboard" component={DashboardPage} />
+      <ProtectedRoute path="/app/editor" component={EditorPage} />
+      <ProtectedRoute path="/app/files" component={FileManagementPage} />
+      <ProtectedRoute path="/app/ai-translation" component={AiTranslationPage} />
+      <ProtectedRoute path="/app/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );
