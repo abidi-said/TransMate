@@ -1,0 +1,67 @@
+PostgreSQL is a powerful open source relational database system that is widely used in web applications and other software development projects. You can easily create a production-ready PostgreSQL database directly within Replit. For more information on PostgreSQL, visit the official documentation. Repls use PostgreSQL version 15.
+
+Here is some information to help you get started:
+
+Replit databases are backed by Neon. The Neon documentation provides guides on how to connect various frameworks, such as Django, to your PostgreSQL database.
+
+Environment Variables: We provided environment variables DATABASE_URL, PGDATABASE, PGHOST, PGHOST, PGPORT, PGUSER, PGPASSWORD. Provide these values to your framework of choice to connect to your database.
+
+Connection pooling: See Neon documentation for connection pooling.
+
+Compute lifecycle: Neon databases go to sleep after 5 minutes of inactivity. You may experience disconnects or reconnects depending on your client.
+
+
+DATABASE_URL
+postgresql://neondb_owner:npg_7aXlNDF1ntKg@ep-young-recipe-a5lzvra6.us-east-2.aws.neon.tech/neondb?sslmode=require
+PGDATABASE
+neondb
+PGHOST
+ep-young-recipe-a5lzvra6.us-east-2.aws.neon.tech
+PGPORT
+5432
+PGUSER
+neondb_owner
+PGPASSWORD
+npg_7aXlNDF1ntKg
+
+//settings
+Database ID
+long-rice-27614904
+
+Based on the codebase, here's how to run the application outside of Replit:
+
+First, ensure you have Node.js v18 or higher installed
+
+Install dependencies:
+
+npm install
+Configure environment variables by copying .env.example to .env and updating the values:
+Set up a PostgreSQL database and update DATABASE_URL
+Configure your OpenAI API key for AI translations
+Set up Stripe keys if using payments
+Initialize the database:
+npm run db:push
+Run the development server:
+npm run dev
+The app will run on http://0.0.0.0:5000
+
+
+///////////////////////
+sudo apt purge postgresql postgresql-contrib
+sudo apt autoremove
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+sudo systemctl status postgresql
+
+create local PostgreSQL database
+    sudo -i -u postgres
+    psql
+    ALTER USER postgres WITH PASSWORD 'postgres';
+    CREATE DATABASE transmate_db;
+    then connect with pgadmin4 
+    addtinal : Create a new user for the application:
+        CREATE USER transmate_user WITH PASSWORD 'your_secure_password';
+        GRANT ALL PRIVILEGES ON DATABASE transmate_db TO transmate_user;
+        ALTER USER transmate_user WITH SUPERUSER;

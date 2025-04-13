@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { franc } from "franc";
-import { log, warning, debug } from "../utils/logger";
+import { log, warning, debug } from "./logger";
 
 /**
  * Translate text from one language to another using AI provider

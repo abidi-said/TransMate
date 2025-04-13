@@ -11,7 +11,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 flex justify-center">
       <div className="container px-4 md:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

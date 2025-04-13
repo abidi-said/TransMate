@@ -15,14 +15,26 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
+// export async function hashPassword(password: string) {
+//   const salt = randomBytes(16).toString("hex");
+//   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+//   return `${buf.toString("hex")}.${salt}`;
+// }
+
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
+  if (!salt) {
+    throw new Error("Failed to generate salt");
+  }
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
+  if (!salt) {
+    throw new Error("Invalid password hash");
+  }
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
@@ -128,7 +140,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: Express.User, info: { message: any; }) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });

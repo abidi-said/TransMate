@@ -4,7 +4,7 @@ import { Globe, CheckCircle } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+    <section className="py-20 bg-gradient-to-b from-white to-gray-50 flex justify-center">
       <div className="container px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>

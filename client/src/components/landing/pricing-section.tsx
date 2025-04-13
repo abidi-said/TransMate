@@ -59,7 +59,7 @@ export function PricingSection() {
   ];
 
   return (
-    <section className="py-16 bg-gray-50" id="pricing">
+    <section className="py-16 bg-gray-50 flex justify-center" id="pricing">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
